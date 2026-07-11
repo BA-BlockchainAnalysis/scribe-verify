@@ -1,6 +1,6 @@
 {
   "name": "scribe-verify",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Trustless, open-source verifier for BAScribe documents. Confirms a signed PDF is anchored on Polygon (and Bitcoin) without trusting BAScribe.",
   "type": "module",
   "bin": {

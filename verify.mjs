@@ -108,8 +108,15 @@ async function main() {
     else packetArg = args[i];
   }
   if (!filePath && !packetArg) {
-    console.log("Usage: node verify.mjs <file.pdf> [packet.json]");
+    console.log("Usage: node verify.mjs <file.pdf | 0x-hash> [packet.json]");
     process.exit(2);
+  }
+
+  // A bare 0x-hash means "fetch and verify that document's packet" (no file
+  // supplied, so the file-integrity step is skipped).
+  if (filePath && /^0x[0-9a-f]{64}$/i.test(filePath)) {
+    packetArg = filePath;
+    filePath = null;
   }
 
   // Determine the leaf hash from the file (preferred) or the packet.
