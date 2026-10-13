@@ -2,7 +2,8 @@
 
 **Trustless, open-source verifier for [BAScribe](https://bascribe.com) documents.**
 
-Confirms that a signed PDF is anchored on-chain **without trusting BAScribe**. Every
+Confirms that a signed PDF is anchored on-chain **without trusting BAScribe**, and
+checks BAScribe **signature receipts** (see below). Every
 input it needs is public: the proof packet, the smart contract, and the blockchain.
 The only network call is a read-only `eth_call` to a public Polygon RPC.
 
@@ -45,6 +46,45 @@ Point it at a different RPC if you prefer your own node:
 ```bash
 POLYGON_RPC_URL=https://your-node node verify.mjs ./executed.pdf
 ```
+
+## Signature receipts
+
+Some documents never reach BAScribe: the sender keeps the file and BAScribe runs
+the signing on its SHA-256 only. For those, BAScribe issues a **signature receipt**,
+a small signed file (a compact JWS) that states who signed which document hash, how
+their email was verified and when. There is no executed PDF.
+
+```bash
+# Check a receipt, and that the document you hold is the one it names:
+node verify.mjs --receipt ./receipt.jws ./document.pdf
+
+# Fully offline except the RPC read (key file and packet you saved earlier):
+node verify.mjs --receipt ./receipt.jws ./document.pdf --jwks ./jwks.json --packet ./packet.json
+```
+
+What it checks:
+
+1. **Signature**: the receipt carries a valid Ed25519 signature from a BAScribe key.
+   Current keys are pinned in `verify.mjs`, so this step does not contact BAScribe.
+   For a key that is not pinned, pass `--jwks <file>`; otherwise the tool fetches
+   `https://bascribe.com/.well-known/jwks.json` and tells you it did.
+2. **Document**: `SHA-256(your file)` equals `document.sha256` in the receipt.
+   Skipped when you pass no file.
+3. **Merkle inclusion** and 4. **on-chain anchor** of the receipt's own SHA-256,
+   exactly as for documents. If the receipt is not anchored yet the tool says so and
+   still reports the signature as valid; run it again later.
+
+What this does and does not prove:
+
+- The signature proves the receipt was issued by the holder of that BAScribe key and
+  has not been changed since. Its content (signer, email verification, times) is
+  **BAScribe's statement**: unlike the anchor checks, it cannot be confirmed from
+  public data alone.
+- The anchor proves, from public data, that this exact receipt existed at the
+  anchoring time.
+- The receipt records a **simple electronic signature**: the signer proved control
+  of an email address and confirmed their intent to sign. It is not a
+  certificate-based signature.
 
 ## Getting a proof packet
 
